@@ -139,7 +139,7 @@ console.log("Perform move = " + move);
 		// merge upwards
 		for(var x = 0; x < 4; x++){
 			board[x][3] = 0;
-			for(var y = 0; y < 3; y++){
+			for(var y = 2; y >= 0; y--){
 				if(board[x][y] == board[x][y+1]){
 					board[x][y] = board[x][y] * 2;
 				}else if(board[x][y] == 0 ){
@@ -166,7 +166,7 @@ console.log("Perform move = " + move);
 		// merge downwards
 		for(var x = 0; x < 4; x++){
 			board[x][0] = 0;
-			for(var y = 3; y > 0; y--){
+			for(var y = 1; y < 4; y++){
 				if(board[x][y] == board[x][y-1]){
 					board[x][y] = board[x][y] * 2;
 				}else if(board[x][y] == 0 ){
@@ -178,7 +178,7 @@ console.log("Perform move = " + move);
 
 		// merge left
 		for(var y = 0; y < 4; y++) board[3][y] = 0;
-		for(var x = 0; x < 3; x++){
+		for(var x = 2; x >= 0 ; x--){
 			for(var y = 0; y < 4; y++){
 				if(board[x][y] == board[x+1][y]){
 					board[x][y] = board[x][y] * 2;
@@ -247,7 +247,7 @@ function DumpBoard(board){
 }
 
 function GetTileAt(x,y){
-      var cell = { x: x, y: y };
+      var cell = { x: x, y: 4 + -y };
       return  gm.grid.cellContent(cell);
 }
 
