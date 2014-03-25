@@ -15,7 +15,7 @@ function sim()
 		console.log("Move: " + move);
 
 		totalMoves++;
-	//	setTimeout(sim, 1000)
+		setTimeout(sim, 1000)
 	}
 	else
 	{
@@ -257,6 +257,6 @@ function GetTileAt(x,y){
 }
 
 
-//var stopId = setTimeout(sim, 1000);
+var stopId = setTimeout(sim, 1000);
 
 
