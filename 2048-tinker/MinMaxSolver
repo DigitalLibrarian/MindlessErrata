@@ -10,12 +10,12 @@ function sim()
 	if(!gm.over)
 	{
 		console.log("Starting");
-		var move = GetMove(3);
+		var move = GetMove(4);
 		gm.move(move);
 		console.log("Move: " + move);
 
 		totalMoves++;
-		setTimeout(sim, 1000)
+	//	setTimeout(sim, 1000)
 	}
 	else
 	{
@@ -50,7 +50,7 @@ function AiTurn(levelsLeft, board){
 	var choices = [2, 4];
 	var possibleCells = ComputePossibleCells(board);
 
-	var bestHigh = 0;
+	var bestHigh = 2048;
 	var bestChoice = 2;
 	var bestCell = {x:0, y:0};
 
@@ -58,7 +58,7 @@ function AiTurn(levelsLeft, board){
 		for(var cellIndex = 0; cellIndex < possibleCells.length; cellIndex++){
 			var newBoard = AiMove(board, choices[choiceIndex], possibleCells[cellIndex]);
 			var high = MinMaxMove(true, levelsLeft-1, newBoard, {});
-			if(high >= bestHigh){
+			if(high <= bestHigh){
 				bestChoice = choices[choiceIndex];
 				bestCell = possibleCells[cellIndex];
 				bestHigh = high;
@@ -128,56 +128,71 @@ function CopyBoard(sourceBoard)
 
 function HumanMove(sourceBoard, move)
 {
+console.log("Perform move = " + move);
 	var board = CopyBoard(sourceBoard);
-
+// 0: up
+// 1: right
+// 2: down
+// 3: left
 	if(move == 0)
 	{
 		// merge upwards
 		for(var x = 0; x < 4; x++){
+			board[x][3] = 0;
 			for(var y = 0; y < 3; y++){
 				if(board[x][y] == board[x][y+1]){
 					board[x][y] = board[x][y] * 2;
+				}else if(board[x][y] == 0 ){
+					board[x][y] = board[x][y+1];
 				}
 			}
-			board[x][3] = 0;
 		}
 	}else if(move == 1){
 
 		// merge right
+		for(var y = 0; y < 4; y++) board[0][y] = 0;
 		for(var x = 3; x > 0; x--){
 			for(var y = 0; y < 4; y++){
 				if(board[x][y] == board[x-1][y]){
 					board[x][y] = board[x][y] * 2;
+				}else if(board[x][y] == 0 ){
+					board[x][y] = board[x-1][y];
 				}
 			}
 		}
 
-		for(var y = 0; y < 4; y++) board[0][y] = 0;
 	}else if(move == 2)
 	{
 		// merge downwards
 		for(var x = 0; x < 4; x++){
+			board[x][0] = 0;
 			for(var y = 3; y > 0; y--){
 				if(board[x][y] == board[x][y-1]){
 					board[x][y] = board[x][y] * 2;
+				}else if(board[x][y] == 0 ){
+					board[x][y] = board[x][y-1];
 				}
 			}
-			board[x][0] = 0;
 		}
 	}else if(move == 3){
 
 		// merge left
+		for(var y = 0; y < 4; y++) board[3][y] = 0;
 		for(var x = 0; x < 3; x++){
 			for(var y = 0; y < 4; y++){
 				if(board[x][y] == board[x+1][y]){
 					board[x][y] = board[x][y] * 2;
+				}else if(board[x][y] == 00){
+					board[x][y] = board[x+1][y-1];
 				}
 			}
 		}
 
-		for(var y = 0; y < 4; y++) board[3][y] = 0;
 	}
-
+console.log("before");
+DumpBoard(sourceBoard);
+console.log("after");
+DumpBoard(board);
 	return board;
 }
 
@@ -218,12 +233,25 @@ function ExtractBoard(){
 	return board;
 }
 
+function DumpBoard(board){
+
+	for(var y = 0; y < 4; y++){
+		var line = "| ";
+		for(var x = 0; x < 4; x++){
+			line =  line + board[x][y] + " | ";
+		}
+		console.log(line);
+	}
+
+
+}
+
 function GetTileAt(x,y){
       var cell = { x: x, y: y };
       return  gm.grid.cellContent(cell);
 }
 
 
-var stopId = setTimeout(sim, 1000);
+//var stopId = setTimeout(sim, 1000);
 
 
