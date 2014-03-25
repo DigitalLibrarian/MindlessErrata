@@ -94,9 +94,10 @@ function ComputePossibleCells(board){
 
 function HumanTurn(levelsLeft, board, playerMove)
 {
+
 	var bestMove = 0;
 	var bestHigh = 0;
-	var moves = [0, 1, 2, 3];
+	var moves = GetPossibleHumanMoves(board);
 	for(var i = 0; i < 4; i++){
 		var move = moves[i];
 		var newBoard = HumanMove(board, move);
@@ -136,6 +137,19 @@ function CopyBoard(sourceBoard)
 		}	
 	}
 	return board;
+}
+
+function GetPossibleHumanMoves(sourceBoard){
+	var possMoves = [];
+	var moves = [0, 1, 2, 3];
+	for(var i = 0; i < 4; i++){
+		var move = moves[i];
+		var newBoard = HumanMove(sourceBoard, move);
+		if(!IsSameBoard(sourceBoard, newBoard)){
+			possMoves.push(move);
+		}
+	}
+	return moves;
 }
 
 function HumanMove(sourceBoard, move)
