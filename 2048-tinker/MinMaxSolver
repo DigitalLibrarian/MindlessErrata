@@ -1,0 +1,229 @@
+var gm = new GameManager(4, KeyboardInputManager, HTMLActuator, LocalStorageManager);
+
+var totalMoves = 0;
+// 0: up
+// 1: right
+// 2: down
+// 3: left
+function sim()
+{
+	if(!gm.over)
+	{
+		console.log("Starting");
+		var move = GetMove(3);
+		gm.move(move);
+		console.log("Move: " + move);
+
+		totalMoves++;
+		setTimeout(sim, 1000)
+	}
+	else
+	{
+		console.log('Game Over: ' + gm.score);
+	}
+}
+
+
+function GetMove(levelsDeep)
+{
+	var board = ExtractBoard();
+
+	var playerMove = {move: 0};
+
+	MinMaxMove(true, levelsDeep, board, playerMove);
+
+	return playerMove.move;
+}
+
+
+function MinMaxMove(isMyTurn, levelsLeft, board, playerMove)
+{
+	if(levelsLeft == 0) {
+		return FindMaxValue(board);
+	}
+
+	if(isMyTurn) { 	return HumanTurn(levelsLeft, board, playerMove); }
+	else 	     {	return AiTurn(levelsLeft, board); }
+}
+
+function AiTurn(levelsLeft, board){
+	var choices = [2, 4];
+	var possibleCells = ComputePossibleCells(board);
+
+	var bestHigh = 0;
+	var bestChoice = 2;
+	var bestCell = {x:0, y:0};
+
+	for(var choiceIndex = 0; choiceIndex < choices.length;choiceIndex++){
+		for(var cellIndex = 0; cellIndex < possibleCells.length; cellIndex++){
+			var newBoard = AiMove(board, choices[choiceIndex], possibleCells[cellIndex]);
+			var high = MinMaxMove(true, levelsLeft-1, newBoard, {});
+			if(high >= bestHigh){
+				bestChoice = choices[choiceIndex];
+				bestCell = possibleCells[cellIndex];
+				bestHigh = high;
+			}
+		}
+	}
+
+	return bestHigh;
+}
+
+function AiMove(sourceBoard, choice, cell){
+	var board = CopyBoard(sourceBoard);
+
+	board[cell.x][cell.y] = choice;
+	return board;
+}
+
+function ComputePossibleCells(board){
+	var cells = [];
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(board[x][y] == 0)
+			{
+				var cell = {x:x, y:y};
+				cells.push(cell);
+			}
+		}	
+	}
+	return cells;
+}
+
+
+function HumanTurn(levelsLeft, board, playerMove)
+{
+	var bestMove = 0;
+	var bestHigh = 0;
+	var moves = [0, 1, 2, 3];
+	for(var i = 0; i < 4; i++){
+		var move = moves[i];
+		var newBoard = HumanMove(board, move);
+		var high = MinMaxMove(false, levelsLeft-1, newBoard, playerMove);
+		if(high >= bestHigh){
+			bestMove = move;
+			bestHigh = high;
+		}
+	}
+	playerMove.move = bestMove;
+
+	return bestHigh;
+}
+
+function CopyBoard(sourceBoard)
+{
+	var board = [
+			[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0]
+		    ];
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			board[x][y] = sourceBoard[x][y];
+		}	
+	}
+	return board;
+}
+
+function HumanMove(sourceBoard, move)
+{
+	var board = CopyBoard(sourceBoard);
+
+	if(move == 0)
+	{
+		// merge upwards
+		for(var x = 0; x < 4; x++){
+			for(var y = 0; y < 3; y++){
+				if(board[x][y] == board[x][y+1]){
+					board[x][y] = board[x][y] * 2;
+				}
+			}
+			board[x][3] = 0;
+		}
+	}else if(move == 1){
+
+		// merge right
+		for(var x = 3; x > 0; x--){
+			for(var y = 0; y < 4; y++){
+				if(board[x][y] == board[x-1][y]){
+					board[x][y] = board[x][y] * 2;
+				}
+			}
+		}
+
+		for(var y = 0; y < 4; y++) board[0][y] = 0;
+	}else if(move == 2)
+	{
+		// merge downwards
+		for(var x = 0; x < 4; x++){
+			for(var y = 3; y > 0; y--){
+				if(board[x][y] == board[x][y-1]){
+					board[x][y] = board[x][y] * 2;
+				}
+			}
+			board[x][0] = 0;
+		}
+	}else if(move == 3){
+
+		// merge left
+		for(var x = 0; x < 3; x++){
+			for(var y = 0; y < 4; y++){
+				if(board[x][y] == board[x+1][y]){
+					board[x][y] = board[x][y] * 2;
+				}
+			}
+		}
+
+		for(var y = 0; y < 4; y++) board[3][y] = 0;
+	}
+
+	return board;
+}
+
+
+
+function FindMaxValue(board){
+	var max = 0;
+	
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(max < board[x][y]){
+				max = board[x][y];
+			}
+		}	
+	}
+
+	return max;
+}
+
+
+function ExtractBoard(){
+	var board = [
+			[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0],
+		    ];
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			var tile = GetTileAt(x,y);
+			if(typeof tile != "undefined" && tile !== null){
+				board[x][y] = tile.value;
+			}else{
+				board[x][y] = 0;
+			}
+		}	
+	}
+	return board;
+}
+
+function GetTileAt(x,y){
+      var cell = { x: x, y: y };
+      return  gm.grid.cellContent(cell);
+}
+
+
+var stopId = setTimeout(sim, 1000);
+
+

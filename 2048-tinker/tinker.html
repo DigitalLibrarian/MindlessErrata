@@ -1,0 +1,36 @@
+<script type="text/javascript">
+ document.addEventListener(
+     "keydown", 
+     function (event) {
+       if(event.which == 87) {
+     	 alert("ya 87y");
+      }
+      }
+  );
+
+  setTimeout(function() 
+		  {
+var keyboardEvent = document.createEvent("KeyboardEvent");
+var initMethod = typeof keyboardEvent.initKeyboardEvent !== 'undefined' ? "initKeyboardEvent" : "initKeyEvent";
+
+
+keyboardEvent[initMethod](
+                   "keydown", // event type : keydown, keyup, keypress
+                    true, // bubbles
+                    true, // cancelable
+                    window, // viewArg: should be window
+                    false, // ctrlKeyArg
+                    false, // altKeyArg
+                    false, // shiftKeyArg
+                    false, // metaKeyArg
+                    40, // keyCodeArg : unsigned long the virtual key code, else 0
+                    0 // charCodeArgs : unsigned long the Unicode character associated with the depressed key, else 0
+);
+
+document.dispatchEvent(keyboardEvent);
+
+
+		  }, 3000);
+
+  
+</script>
