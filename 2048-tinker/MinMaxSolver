@@ -10,7 +10,7 @@ function sim()
 	if(!gm.over)
 	{
 		console.log("Starting");
-		var move = GetMove(4);
+		var move = GetMove(6);
 		gm.move(move);
 		console.log("Move: " + move);
 
@@ -128,7 +128,7 @@ function CopyBoard(sourceBoard)
 
 function HumanMove(sourceBoard, move)
 {
-console.log("Perform move = " + move);
+
 	var board = CopyBoard(sourceBoard);
 // 0: up
 // 1: right
@@ -138,61 +138,66 @@ console.log("Perform move = " + move);
 	{
 		// merge upwards
 		for(var x = 0; x < 4; x++){
-			board[x][3] = 0;
-			for(var y = 2; y >= 0; y--){
+			for(var y = 0; y < 3; y++){
 				if(board[x][y] == board[x][y+1]){
 					board[x][y] = board[x][y] * 2;
+					board[x][y+1] = 0;
 				}else if(board[x][y] == 0 ){
 					board[x][y] = board[x][y+1];
+					board[x][y+1] = 0;
 				}
 			}
+			board[x][3] = 0;
 		}
 	}else if(move == 1){
 
 		// merge right
-		for(var y = 0; y < 4; y++) board[0][y] = 0;
 		for(var x = 3; x > 0; x--){
 			for(var y = 0; y < 4; y++){
 				if(board[x][y] == board[x-1][y]){
 					board[x][y] = board[x][y] * 2;
+					board[x-1][y] = 0;
 				}else if(board[x][y] == 0 ){
 					board[x][y] = board[x-1][y];
+					board[x-1][y] = 0;
 				}
 			}
 		}
+		for(var y = 0; y < 4; y++) board[0][y] = 0;
 
 	}else if(move == 2)
 	{
 		// merge downwards
 		for(var x = 0; x < 4; x++){
-			board[x][0] = 0;
-			for(var y = 1; y < 4; y++){
+			for(var y = 3; y > 0; y--){
 				if(board[x][y] == board[x][y-1]){
 					board[x][y] = board[x][y] * 2;
+					board[x][y-1] = 0;
 				}else if(board[x][y] == 0 ){
 					board[x][y] = board[x][y-1];
+					board[x][y-1] = 0;
 				}
 			}
+			board[x][0] = 0;
 		}
 	}else if(move == 3){
 
 		// merge left
-		for(var y = 0; y < 4; y++) board[3][y] = 0;
-		for(var x = 2; x >= 0 ; x--){
+		for(var x = 0; x < 3 ; x++){
 			for(var y = 0; y < 4; y++){
 				if(board[x][y] == board[x+1][y]){
 					board[x][y] = board[x][y] * 2;
+					board[x+1][y] = 0;
 				}else if(board[x][y] == 00){
-					board[x][y] = board[x+1][y-1];
+					board[x][y] = board[x+1][y];
+					board[x+1][y] = 0;
 				}
 			}
 		}
+		for(var y = 0; y < 4; y++) board[3][y] = 0;
 
 	}
-console.log("before");
-DumpBoard(sourceBoard);
-console.log("after");
-DumpBoard(board);
+
 	return board;
 }
 
