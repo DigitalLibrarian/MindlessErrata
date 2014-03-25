@@ -1,5 +1,8 @@
 var gm = new GameManager(4, KeyboardInputManager, HTMLActuator, LocalStorageManager);
 
+var PUMPTIME = 100;
+var MAX_BOARD_SCORE = Number.MaxValue;
+var MIN_BOARD_SCORE = -Number.MaxValue;
 var totalMoves = 0;
 // 0: up
 // 1: right
@@ -9,17 +12,18 @@ function sim()
 {
 	if(!gm.over)
 	{
-		console.log("Starting");
-		var move = GetMove(6);
+		var move = GetMove(7);
+
 		gm.move(move);
 		console.log("Move: " + move);
 
 		totalMoves++;
-		setTimeout(sim, 1000)
+		setTimeout(sim, PUMPTIME)
 	}
 	else
 	{
 		console.log('Game Over: ' + gm.score);
+		console.log("Total moves: " + totalMoves);
 	}
 }
 
@@ -27,11 +31,22 @@ function sim()
 function GetMove(levelsDeep)
 {
 	var board = ExtractBoard();
-
+	console.log("Generating move.  current board score = " + FindMaxValue(board));
+	var originalBoard = CopyBoard(board);
 	var playerMove = {move: 0};
 
 	var bestHigh = MinMaxMove(true, levelsDeep, board, playerMove);
-	console.log("Best High = " + bestHigh);
+
+	var newBoard = HumanMove(board, playerMove.move);
+	// if our ai didn't turn up anything useful, let's fall back on the first direction that yields *something* different
+	if(IsSameBoard(newBoard, originalBoard)){
+		for(var retry = 0; retry < 4; retry++){	
+			newBoard = HumanMove(board, retry);
+			if(!IsSameBoard(newBoard, originalBoard)){
+				return retry;
+			}
+		}
+	}
 
 	return playerMove.move;
 }
@@ -51,7 +66,7 @@ function AiTurn(levelsLeft, board){
 	var choices = [2, 4];
 	var possibleCells = ComputePossibleCells(board);
 
-	var bestHigh = 2048;
+	var bestHigh = MAX_BOARD_SCORE;
 	var bestChoice = 2;
 	var bestCell = {x:0, y:0};
 
@@ -96,7 +111,7 @@ function HumanTurn(levelsLeft, board, playerMove)
 {
 
 	var bestMove = 0;
-	var bestHigh = 0;
+	var bestHigh = MIN_BOARD_SCORE;
 	var moves = GetPossibleHumanMoves(board);
 	for(var i = 0; i < 4; i++){
 		var move = moves[i];
@@ -171,7 +186,6 @@ function HumanMove(sourceBoard, move)
 					board[x][y+1] = 0;
 				}
 			}
-			board[x][3] = 0;
 		}
 	}else if(move == 1){
 
@@ -187,7 +201,6 @@ function HumanMove(sourceBoard, move)
 				}
 			}
 		}
-		for(var y = 0; y < 4; y++) board[0][y] = 0;
 
 	}else if(move == 2)
 	{
@@ -202,7 +215,6 @@ function HumanMove(sourceBoard, move)
 					board[x][y-1] = 0;
 				}
 			}
-			board[x][0] = 0;
 		}
 	}else if(move == 3){
 
@@ -218,7 +230,6 @@ function HumanMove(sourceBoard, move)
 				}
 			}
 		}
-		for(var y = 0; y < 4; y++) board[3][y] = 0;
 
 	}
 
@@ -230,12 +241,71 @@ function HumanMove(sourceBoard, move)
 function FindMaxValue(board){
 	var max = 0;
 	var occurences = 0;
+	var totalPossible = 0;
+	var totalUnusable = 0;
+	var found2048 = false;
+	var anyEmpty = false;
+
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
-			max += board[x][y] * board[x][y];
+			max += (board[x][y]) / 1000;
+
+			//handles inner circle
+			if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0)
+			{
+				if(board[x][y] == board[x-1][y]) { totalPossible += 100; } else if(board[x-1][y] != 0) { totalUnusable += -1; }
+				if(board[x][y] == board[x+1][y]) { totalPossible += 100; } else if(board[x+1][y] != 0) { totalUnusable += -1; }
+				if(board[x][y] == board[x][y-1]) { totalPossible += 100; } else if(board[x][y-1] != 0) { totalUnusable += -1; }
+				if(board[x][y] == board[x][y+1]) { totalPossible += 100; } else if(board[x][y+1] != 0) { totalUnusable += -1; }
+			}
+
+			if(x == 0 && y == 0)
+			{
+				if(board[x][y] == board[x+1][y]) { totalPossible += 100; } else if(board[x+1][y] != 0) { totalUnusable += -1; }
+				if(board[x][y] == board[x][y+1]) { totalPossible += 100; } else if(board[x][y+1] != 0) { totalUnusable += -1; }
+			}
+
+			if(x == 3 && y == 0){
+				
+				if(board[x][y] == board[x-1][y]) { totalPossible += 100; } else if(board[x-1][y] != 0) { totalUnusable += -1; }
+				if(board[x][y] == board[x][y+1]) { totalPossible += 100; } else if(board[x][y+1] != 0) { totalUnusable += -1; }
+			}
+
+			if(x == 0 && y == 3)
+			{
+				
+				if(board[x][y] == board[x+1][y]) { totalPossible += 100; } else if(board[x+1][y] != 0) { totalUnusable += -1; }
+				if(board[x][y] == board[x][y-1]) { totalPossible += 100; } else if(board[x][y-1] != 0) { totalUnusable += -1; }
+			}
+
+			if(x == 3 && y == 3){
+				if(board[x][y] == board[x-1][y]) { totalPossible += 100; } else if(board[x-1][y] != 0) { totalUnusable += -1; }
+				if(board[x][y] == board[x][y-1]) { totalPossible += 100; } else if(board[x][y-1] != 0) { totalUnusable += -1; }
+
+			}
+
+			if(board[x][y] == 0) 
+			{	
+				max += (10000);
+				anyEmpty = true;
+			}
+			if(board[x][y] == 2048)
+			{
+				found2048 = true;
+			}
 		}	
 	}
-	return  max;
+
+	if(found2048){
+		return MAX_BOARD_SCORE;
+	}
+
+	if(!anyEmpty){
+		return MIN_BOARD_SCORE;
+	}
+	
+
+	return  max + totalPossible - totalUnusable;
 }
 
 
@@ -273,11 +343,12 @@ function DumpBoard(board){
 }
 
 function GetTileAt(x,y){
-      var cell = { x: x, y: 4 + -y };
+      var cell = { x: x, y: y };
       return  gm.grid.cellContent(cell);
 }
 
 
 var stopId = setTimeout(sim, 1000);
+
 
 
