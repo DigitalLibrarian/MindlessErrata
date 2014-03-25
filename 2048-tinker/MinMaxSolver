@@ -101,12 +101,10 @@ function HumanTurn(levelsLeft, board, playerMove)
 	for(var i = 0; i < 4; i++){
 		var move = moves[i];
 		var newBoard = HumanMove(board, move);
-		if(!IsSameBoard(board, newBoard)){
-			var high = MinMaxMove(false, levelsLeft-1, newBoard, {});
-			if(high >= bestHigh){
-				bestMove = move;
-				bestHigh = high;
-			}
+		var high = MinMaxMove(false, levelsLeft-1, newBoard, {});
+		if(high >= bestHigh){
+			bestMove = move;
+			bestHigh = high;
 		}
 	}
 	playerMove.move = bestMove;
@@ -234,16 +232,10 @@ function FindMaxValue(board){
 	var occurences = 0;
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
-			if(max < board[x][y]){
-				max = board[x][y];
-				occurrences = 1;
-			}else if(max == board[x][y]){
-				occurrences++;
-			}
+			max += board[x][y] * board[x][y];
 		}	
 	}
-
-	return max * occurrences;
+	return  max;
 }
 
 
