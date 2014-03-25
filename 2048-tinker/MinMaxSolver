@@ -99,15 +99,26 @@ function HumanTurn(levelsLeft, board, playerMove)
 	for(var i = 0; i < 4; i++){
 		var move = moves[i];
 		var newBoard = HumanMove(board, move);
-		var high = MinMaxMove(false, levelsLeft-1, newBoard, playerMove);
-		if(high >= bestHigh){
-			bestMove = move;
-			bestHigh = high;
+		if(!IsSameBoard(board, newBoard)){
+			var high = MinMaxMove(false, levelsLeft-1, newBoard, playerMove);
+			if(high >= bestHigh){
+				bestMove = move;
+				bestHigh = high;
+			}
 		}
 	}
 	playerMove.move = bestMove;
 
 	return bestHigh;
+}
+
+function IsSameBoard(a, b){
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(a[x][y] != b[x][y]) return false;
+		}	
+	}
+	return true;
 }
 
 function CopyBoard(sourceBoard)
