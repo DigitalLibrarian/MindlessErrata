@@ -1,6 +1,6 @@
 var gm = new GameManager(4, KeyboardInputManager, HTMLActuator, LocalStorageManager);
 
-var PUMPTIME = 150;
+var PUMPTIME = 500;
 var MAX_BOARD_SCORE = Number.MaxValue;
 var MIN_BOARD_SCORE = -Number.MaxValue;
 var totalMoves = 0;
@@ -15,12 +15,12 @@ function sim()
 {
 	if(!gm.over)
 	{
-		var move = GetMove(7);
+		var move = GetMove(3);
 
 		gm.move(move);
-		console.log("Move: " + move);
-
 		totalMoves++;
+		console.log("Move #" + totalMoves + ": " + move);
+
 		if(SIM_RUNNING){
 			setTimeout(sim, PUMPTIME);
 		}else{
@@ -163,12 +163,7 @@ function IsSameBoard(a, b){
 
 function CopyBoard(sourceBoard)
 {
-	var board = [
-			[0,0,0,0],
-			[0,0,0,0],
-			[0,0,0,0],
-			[0,0,0,0]
-		    ];
+	var board = CreateNewBoard();
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			board[x][y] = sourceBoard[x][y];
@@ -192,8 +187,7 @@ function GetPossibleHumanMoves(sourceBoard){
 
 function HumanMove(sourceBoard, move)
 {
-
-	var board = CopyBoard(sourceBoard);
+	var board = CreateNewBoard();
 // 0: up
 // 1: right
 // 2: down
@@ -202,28 +196,41 @@ function HumanMove(sourceBoard, move)
 	{
 		// merge upwards
 		for(var x = 0; x < 4; x++){
+			var out = 0;
 			for(var y = 0; y < 3; y++){
-				if(board[x][y] == board[x][y+1]){
-					board[x][y] = board[x][y] * 2;
-					board[x][y+1] = 0;
-				}else if(board[x][y] == 0 ){
-					board[x][y] = board[x][y+1];
-					board[x][y+1] = 0;
+				var me = sourceBoard[x][y];
+				var neigh = sourceBoard[x][y+1];
+
+				if(me == 0){
+					board[x][out] = neigh;
+					y++; // the one we just merged
+				}else if(me == neigh){
+					board[x][out] = me * 2;
+					y++; // the one we just merged
+				}else{
+					board[x][out] = me;
 				}
+				out++;
 			}
 		}
 	}else if(move == 1){
 
 		// merge right
-		for(var x = 3; x > 0; x--){
-			for(var y = 0; y < 4; y++){
-				if(board[x][y] == board[x-1][y]){
-					board[x][y] = board[x][y] * 2;
-					board[x-1][y] = 0;
-				}else if(board[x][y] == 0 ){
-					board[x][y] = board[x-1][y];
-					board[x-1][y] = 0;
+		for(var y = 0; y < 4; y++){
+			var out = 3;
+			for(var x = 3; x > 0; x--){
+				var me = sourceBoard[x][y];
+		
+				if(me == 0){
+					board[out][y] = sourceBoard[x-1][y];
+					x--;
+				}else if(me == sourceBoard[x-1][y]){
+					board[out][y] = me * 2;
+					x--;
+				}else{
+					board[out][y] = me;
 				}
+				out--;
 			}
 		}
 
@@ -231,32 +238,55 @@ function HumanMove(sourceBoard, move)
 	{
 		// merge downwards
 		for(var x = 0; x < 4; x++){
+			var out = 3;
 			for(var y = 3; y > 0; y--){
-				if(board[x][y] == board[x][y-1]){
-					board[x][y] = board[x][y] * 2;
-					board[x][y-1] = 0;
-				}else if(board[x][y] == 0 ){
-					board[x][y] = board[x][y-1];
-					board[x][y-1] = 0;
+				var me = sourceBoard[x][y];
+
+				if(me == 0){
+					board[x][out] = sourceBoard[x][y-1];
+					y--;
+				}else if(me == sourceBoard[x][y-1]){
+					board[x][out] = me * 2;
+					y--;
+				}else{
+					board[x][out] = me;
 				}
+				out--;
+			}
+			var me = sourceBoard[x][0];
+			if(me == 0){
+				board[x][0] = 0;
+			}else if(board[x][1] != 0){
+				board[x][0] = 0;
+				
+			}else{
+				board[x][0] = me;
 			}
 		}
 	}else if(move == 3){
 
 		// merge left
-		for(var x = 0; x < 3 ; x++){
-			for(var y = 0; y < 4; y++){
-				if(board[x][y] == board[x+1][y]){
-					board[x][y] = board[x][y] * 2;
-					board[x+1][y] = 0;
-				}else if(board[x][y] == 00){
-					board[x][y] = board[x+1][y];
-					board[x+1][y] = 0;
+		for(var y = 0; y < 4; y++){
+			var out = 0;
+			for(var x = 0; x < 3; x++){
+				var me = sourceBoard[x][y];
+				var neigh = sourceBoard[x+1][y];
+
+				if(me == 0){
+					board[out][y] = neigh;
+					x++; // the one we just merged
+				}else if(me == neigh){
+					board[out][y] = me * 2;
+					x++; // the one we just merged
+				}else{
+					board[out][y] = me;
 				}
+				out++;
 			}
 		}
 
 	}
+
 
 	return board;
 }
@@ -270,16 +300,19 @@ function IsEmpty(a){
 	return a == 0;
 }
 
-
-
-
-function ExtractBoard(){
-	var board = [
+function CreateNewBoard(){
+	return [
 			[0,0,0,0],
 			[0,0,0,0],
 			[0,0,0,0],
 			[0,0,0,0],
 		    ];
+}
+
+
+function ExtractBoard(){
+	var board = CreateNewBoard();
+
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			var tile = GetTileAt(x,y);
@@ -292,54 +325,82 @@ function ExtractBoard(){
 	}
 	return board;
 }
+
+function VisitNeighbors(board, x, y, callback){
+	if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0){
+		callback(board[x-1][y]);
+		callback(board[x+1][y]);
+		callback(board[x][y-1]);
+		callback(board[x][y+1]);
+
+	}
+
+	if(x == 0 && y == 0)
+	{
+		callback(board[x+1][y]);
+		callback(board[x][y+1]);
+	}
+
+	if(x == 3 && y == 0)
+	{
+		callback(board[x-1][y]);
+		callback(board[x][y+1]);
+	}
+	
+	if(x == 0 && y == 3)
+	{
+		callback(board[x+1][y]);
+		callback(board[x][y-1]);
+	}
+
+	if(x == 3 && y == 3)
+	{
+		callback(board[x-1][y]);
+		callback(board[x][y-1]);
+	}
+
+}
  
 
 
 function FindMaxValue(board){
 	var max = 0;
 	var occurences = 0;
-	var totalPossible = 0;
-	var totalUnusable = 0;
 	var anyEmpty = false;
 
-	var usedCellValue = -10;
-	var possMergeValue = 100;
-	var unusableValue = 2;
+	var usedCellValue = -.1;
+	var possMergeValue = .5;
+	var unusableValue = -.01;
 	var emptyCellValue = 1000;
+	var bigNumOccurFee = -10;
+	var adjacentPairDistFee = -0.1;
+
+	var bigNum = 2;
+	var bigNumOccur = 0;
+
 
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
-			if(board[x][y] != 0){
+			var me = board[x][y];
+			if(me != 0){
 				max += usedCellValue;
 
-				if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0)
-				{
-					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
+				VisitNeighbors(board, x, y, function(v) {
+					if(me == v)
+					{ 
+						me += v * possMergeValue; 
+					} else if(v != 0) { 
+						me +=  v * unusableValue; 
+						max += adjacentPairDistFee * Math.abs(me - v);
+					}
+				});
 
-				if(x == 0 && y == 0)
-				{
-					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
 
-				if(x == 3 && y == 0){			
-					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
-
-				if(x == 0 && y == 3)
-				{
-					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
-	
-				if(x == 3 && y == 3){
-					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
+				if(bigNum < me){
+					bigNum = me;
+					bigNumOccur = 1;
+				}else if(bigNum == me){
+					bigNumOccur++;
 				}
 			}
 			else 
@@ -361,7 +422,476 @@ function FindMaxValue(board){
 	}
 	
 
-	return  max + totalPossible - totalUnusable;
+	if(bigNumOccur > 1){
+		max += (bigNumOccur * bigNumOccurFee * bigNum);
+	}
+var gm = new GameManager(4, KeyboardInputManager, HTMLActuator, LocalStorageManager);
+
+var PUMPTIME = 500;
+var MAX_BOARD_SCORE = Number.MaxValue;
+var MIN_BOARD_SCORE = -Number.MaxValue;
+var totalMoves = 0;
+
+var SIM_RUNNING = true;
+
+// 0: up
+// 1: right
+// 2: down
+// 3: left
+function sim()
+{
+	if(!gm.over)
+	{
+		var move = GetMove(3);
+
+		gm.move(move);
+		totalMoves++;
+		console.log("Move #" + totalMoves + ": " + move);
+
+		if(SIM_RUNNING){
+			setTimeout(sim, PUMPTIME);
+		}else{
+			console.log("Sim Stopped");
+		}
+	}
+	else
+	{
+		console.log('Game Over: ' + gm.score);
+		console.log("Total moves: " + totalMoves);
+	}
+}
+
+function stop(){
+	SIM_RUNNING = false;
+}
+
+
+function GetMove(levelsDeep)
+{
+	var board = ExtractBoard();
+	console.log("Generating move.  current board score = " + FindMaxValue(board));
+	var originalBoard = CopyBoard(board);
+	var playerMove = {move: 0};
+
+	var bestHigh = MinMaxMove(true, levelsDeep, board, playerMove);
+
+	var newBoard = HumanMove(board, playerMove.move);
+	// if our ai didn't turn up anything useful, let's fall back on the first direction that yields *something* different
+	if(IsSameBoard(newBoard, originalBoard)){
+		for(var retry = 0; retry < 4; retry++){	
+			newBoard = HumanMove(board, retry);
+			if(!IsSameBoard(newBoard, originalBoard)){
+				return retry;
+			}
+		}
+	}
+
+	return playerMove.move;
+}
+
+
+function MinMaxMove(isMyTurn, levelsLeft, board, playerMove)
+{
+	if(levelsLeft == 0) {
+		return FindMaxValue(board);
+	}
+	
+
+	if(isMyTurn) { 	return HumanTurn(levelsLeft, board, playerMove); }
+	else 	     {	return AiTurn(levelsLeft, board); }
+}
+
+function AiTurn(levelsLeft, board){
+	var choices = [2, 4];
+	var possibleCells = ComputePossibleCells(board);
+
+
+	if(possibleCells.length == 0)
+	{
+		return FindMaxValue(board);
+	}
+
+	var bestHigh = MAX_BOARD_SCORE;
+	var bestChoice = 2;
+	var bestCell = {x:0, y:0};
+
+	for(var choiceIndex = 0; choiceIndex < choices.length;choiceIndex++){
+		for(var cellIndex = 0; cellIndex < possibleCells.length; cellIndex++){
+			var newBoard = AiMove(board, choices[choiceIndex], possibleCells[cellIndex]);
+			var high = MinMaxMove(true, levelsLeft-1, newBoard, {});
+			if(high <= bestHigh){
+				bestChoice = choices[choiceIndex];
+				bestCell = possibleCells[cellIndex];
+				bestHigh = high;
+			}
+		}
+	}
+
+	return bestHigh;
+}
+
+function AiMove(sourceBoard, choice, cell){
+	var board = CopyBoard(sourceBoard);
+
+	board[cell.x][cell.y] = choice;
+	return board;
+}
+
+function ComputePossibleCells(board){
+	var cells = [];
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(board[x][y] == 0)
+			{
+				var cell = {x:x, y:y};
+				cells.push(cell);
+			}
+		}	
+	}
+	return cells;
+}
+
+
+function HumanTurn(levelsLeft, board, playerMove)
+{
+
+	var bestMove = 0;
+	var bestHigh = MIN_BOARD_SCORE;
+	var moves = GetPossibleHumanMoves(board);
+
+	if(moves.length == 0)
+	{
+		return FindMaxValue(board);
+	}
+
+	for(var i = 0; i < 4; i++){
+		var move = moves[i];
+		var newBoard = HumanMove(board, move);
+		var high = MinMaxMove(false, levelsLeft-1, newBoard, {});
+		if(high >= bestHigh){
+			bestMove = move;
+			bestHigh = high;
+		}
+	}
+	playerMove.move = bestMove;
+
+	return bestHigh;
+}
+
+function IsSameBoard(a, b){
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(a[x][y] != b[x][y]) return false;
+		}	
+	}
+	return true;
+}
+
+
+function CopyBoard(sourceBoard)
+{
+	var board = CreateNewBoard();
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			board[x][y] = sourceBoard[x][y];
+		}	
+	}
+	return board;
+}
+
+function GetPossibleHumanMoves(sourceBoard){
+	var possMoves = [];
+	var moves = [0, 1, 2, 3];
+	for(var i = 0; i < 4; i++){
+		var move = moves[i];
+		var newBoard = HumanMove(sourceBoard, move);
+		if(!IsSameBoard(sourceBoard, newBoard)){
+			possMoves.push(move);
+		}
+	}
+	return moves;
+}
+
+function HumanMove(sourceBoard, move)
+{
+	var board = CreateNewBoard();
+// 0: up
+// 1: right
+// 2: down
+// 3: left
+	if(move == 0)
+	{
+		// merge upwards
+		for(var x = 0; x < 4; x++){
+			var out = 0;
+			var lastGone = false;
+			for(var y = 0; y < 3; y++){
+				lastGone = false;
+				var me = sourceBoard[x][y];
+				var neigh = sourceBoard[x][y+1];
+
+				if(me == 0){
+					board[x][out] = neigh;
+					lastGone = true;
+					do { y++ } while(y < 3 && sourceBoard[x][y+1] == 0);
+				}else if(me == neigh){
+					board[x][out] = me * 2;
+					lastGone = true;
+					y++; // the one we just merged
+				}else{
+					board[x][out] = me;
+				}
+				out++;
+			}
+			var me = sourceBoard[x][3];
+			if(lastGone){
+				board[x][3] = 0;
+			}else{
+				board[x][3] = me;
+			}
+		}
+	}else if(move == 1){
+
+		// merge right
+		for(var y = 0; y < 4; y++){
+			var out = 3;
+			var lastGone = false;
+			for(var x = 3; x > 0; x--){
+				lastGone = false;
+				var me = sourceBoard[x][y];
+		
+				if(me == 0){
+					board[out][y] = sourceBoard[x-1][y];
+					lastGone  = true;
+					//do { x-- } while(x > 1 && sourceBoard[x-1][y] == 0);
+				}else if(me == sourceBoard[x-1][y]){
+					board[out][y] = me * 2;
+					lastGone  = true;
+					x--;
+				}else{
+					board[out][y] = me;
+				}
+				out--;
+			}
+			var me = sourceBoard[0][y];
+			if(lastGone){
+				board[0][y] = 0;
+			}else{
+				board[0][y] = me;
+			}
+		}
+
+	}else if(move == 2)
+	{
+		// merge downwards
+		for(var x = 0; x < 4; x++){
+			var out = 3;
+			var lastGone = false;
+			for(var y = 3; y > 0; y--){
+				lastGone = false;
+				var me = sourceBoard[x][y];
+
+				if(me == 0){
+					board[x][out] = sourceBoard[x][y-1];
+					lastGone = true;
+					do { y-- } while(y > 0 && sourceBoard[x][y-1] == 0);
+				}else if(me == sourceBoard[x][y-1]){
+					board[x][out] = me * 2;
+					lastGone = true;
+					y--;
+				}else{
+					board[x][out] = me;
+				}
+				out--;
+			}
+			var me = sourceBoard[x][0];
+			if(lastGone){
+				board[x][0] = 0;
+				
+			}else{
+				board[x][0] = me;
+			}
+		}
+	}else if(move == 3){
+
+		// merge left
+		for(var y = 0; y < 4; y++){
+			var out = 0;
+			var lastGone = false;
+			for(var x = 0; x < 3; x++){
+				lastGone = false;
+				var me = sourceBoard[x][y];
+				var neigh = sourceBoard[x+1][y];
+
+				if(me == 0){
+					board[out][y] = neigh;
+					lastGone = true;
+					x++; // the one we just merged
+					do { x++ } while(x < 3 && sourceBoard[x+1][y] == 0);
+				}else if(me == neigh){
+					board[out][y] = me * 2;
+					lastGone = true;
+					x++; // the one we just merged
+				}else{
+					board[out][y] = me;
+				}
+				out++;
+			}
+			var me = sourceBoard[3][y];
+			if(lastGone){
+				board[3][y] = 0;
+				
+			}else{
+				board[3][y] = me;
+			}
+		}
+
+	}
+
+//	console.log("Doing move " + move);
+//	DumpBoard(sourceBoard);
+//	console.log("After move " + move);
+//	DumpBoard(board);
+
+
+	return board;
+}
+
+//takes two cell values
+function IsPossibleMerge(a, b){
+	return a == b && a != 0;
+}
+
+function IsEmpty(a){
+	return a == 0;
+}
+
+function CreateNewBoard(){
+	return [
+			[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0],
+			[0,0,0,0],
+		    ];
+}
+
+
+function ExtractBoard(){
+	var board = CreateNewBoard();
+
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			var tile = GetTileAt(x,y);
+			if(typeof tile != "undefined" && tile !== null){
+				board[x][y] = tile.value;
+			}else{
+				board[x][y] = 0;
+			}
+		}	
+	}
+	return board;
+}
+
+function VisitNeighbors(board, x, y, callback){
+	if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0){
+		callback(board[x-1][y]);
+		callback(board[x+1][y]);
+		callback(board[x][y-1]);
+		callback(board[x][y+1]);
+
+	}
+
+	if(x == 0 && y == 0)
+	{
+		callback(board[x+1][y]);
+		callback(board[x][y+1]);
+	}
+
+	if(x == 3 && y == 0)
+	{
+		callback(board[x-1][y]);
+		callback(board[x][y+1]);
+	}
+	
+	if(x == 0 && y == 3)
+	{
+		callback(board[x+1][y]);
+		callback(board[x][y-1]);
+	}
+
+	if(x == 3 && y == 3)
+	{
+		callback(board[x-1][y]);
+		callback(board[x][y-1]);
+	}
+
+}
+ 
+
+
+function FindMaxValue(board){
+	var max = 0;
+	var occurences = 0;
+	var anyEmpty = false;
+
+	var usedCellValue = -.1;
+	var possMergeValue = .5;
+	var unusableValue = -.01;
+	var emptyCellValue = 1000;
+	var bigNumOccurFee = -10;
+	var adjacentPairDistFee = -0.1;
+
+	var bigNum = 2;
+	var bigNumOccur = 0;
+
+
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			var me = board[x][y];
+			if(me != 0){
+				max += usedCellValue;
+
+				VisitNeighbors(board, x, y, function(v) {
+					if(me == v)
+					{ 
+						me += v * possMergeValue; 
+					} else if(v != 0) { 
+						me +=  v * unusableValue; 
+						max += adjacentPairDistFee * Math.abs(me - v);
+					}
+				});
+
+
+				if(bigNum < me){
+					bigNum = me;
+					bigNumOccur = 1;
+				}else if(bigNum == me){
+					bigNumOccur++;
+				}
+			}
+			else 
+			{	
+				max += (emptyCellValue);
+				anyEmpty = true;
+			}
+			if(board[x][y] == 2048)
+			{
+				return MAX_BOARD_SCORE;
+			}
+		}	
+	}
+
+
+	if(!anyEmpty){
+		console.log("Scoring found board full up.");
+		return MIN_BOARD_SCORE;
+	}
+	
+
+	if(bigNumOccur > 1){
+		max += (bigNumOccur * bigNumOccurFee * bigNum);
+	}
+	return  max;
 }
 
 
@@ -379,12 +909,43 @@ function DumpBoard(board){
 }
 
 function GetTileAt(x,y){
-      var cell = { x: x, y: y };
+      var cell = { x: 4, y: y };
       return  gm.grid.cellContent(cell);
 }
 
 
-var stopId = setTimeout(sim, 1000);
+var stopId = setTimeout(sim, 3000);
 
 
 
+	return  max;
+}
+
+
+
+
+function DumpBoard(board){
+
+	for(var y = 0; y < 4; y++){
+		var line = "| ";
+		for(var x = 0; x < 4; x++){
+			line =  line + board[x][y] + " | ";
+		}
+		console.log(line);
+	}
+}
+
+function GetTileAt(x,y){
+      var cell = { x: 4, y: y };
+      return  gm.grid.cellContent(cell);
+}
+
+
+var stopId = setTimeout(sim, 3000);
+
+
+
+// 0: up
+// 1: right
+// 2: down
+// 3: left
