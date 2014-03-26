@@ -1,6 +1,6 @@
 var gm = new GameManager(4, KeyboardInputManager, HTMLActuator, LocalStorageManager);
 
-var PUMPTIME = 100;
+var PUMPTIME = 3000;
 var MAX_BOARD_SCORE = Number.MaxValue;
 var MIN_BOARD_SCORE = -Number.MaxValue;
 var totalMoves = 0;
@@ -12,7 +12,7 @@ function sim()
 {
 	if(!gm.over)
 	{
-		var move = GetMove(7);
+		var move = GetMove(6);
 
 		gm.move(move);
 		console.log("Move: " + move);
@@ -57,6 +57,7 @@ function MinMaxMove(isMyTurn, levelsLeft, board, playerMove)
 	if(levelsLeft == 0) {
 		return FindMaxValue(board);
 	}
+	
 
 	if(isMyTurn) { 	return HumanTurn(levelsLeft, board, playerMove); }
 	else 	     {	return AiTurn(levelsLeft, board); }
@@ -65,6 +66,12 @@ function MinMaxMove(isMyTurn, levelsLeft, board, playerMove)
 function AiTurn(levelsLeft, board){
 	var choices = [2, 4];
 	var possibleCells = ComputePossibleCells(board);
+
+
+	if(possibleCells.length == 0)
+	{
+		return FindMaxValue(board);
+	}
 
 	var bestHigh = MAX_BOARD_SCORE;
 	var bestChoice = 2;
@@ -113,6 +120,12 @@ function HumanTurn(levelsLeft, board, playerMove)
 	var bestMove = 0;
 	var bestHigh = MIN_BOARD_SCORE;
 	var moves = GetPossibleHumanMoves(board);
+
+	if(moves.length == 0)
+	{
+		return FindMaxValue(board);
+	}
+
 	for(var i = 0; i < 4; i++){
 		var move = moves[i];
 		var newBoard = HumanMove(board, move);
@@ -135,6 +148,7 @@ function IsSameBoard(a, b){
 	}
 	return true;
 }
+
 
 function CopyBoard(sourceBoard)
 {
@@ -236,77 +250,16 @@ function HumanMove(sourceBoard, move)
 	return board;
 }
 
-
-
-function FindMaxValue(board){
-	var max = 0;
-	var occurences = 0;
-	var totalPossible = 0;
-	var totalUnusable = 0;
-	var found2048 = false;
-	var anyEmpty = false;
-
-	for(var x = 0; x < 4; x++){
-		for(var y = 0; y < 4; y++){
-			max += (board[x][y]) / 1000;
-
-			//handles inner circle
-			if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0)
-			{
-				if(board[x][y] == board[x-1][y]) { totalPossible += 100; } else if(board[x-1][y] != 0) { totalUnusable += -1; }
-				if(board[x][y] == board[x+1][y]) { totalPossible += 100; } else if(board[x+1][y] != 0) { totalUnusable += -1; }
-				if(board[x][y] == board[x][y-1]) { totalPossible += 100; } else if(board[x][y-1] != 0) { totalUnusable += -1; }
-				if(board[x][y] == board[x][y+1]) { totalPossible += 100; } else if(board[x][y+1] != 0) { totalUnusable += -1; }
-			}
-
-			if(x == 0 && y == 0)
-			{
-				if(board[x][y] == board[x+1][y]) { totalPossible += 100; } else if(board[x+1][y] != 0) { totalUnusable += -1; }
-				if(board[x][y] == board[x][y+1]) { totalPossible += 100; } else if(board[x][y+1] != 0) { totalUnusable += -1; }
-			}
-
-			if(x == 3 && y == 0){
-				
-				if(board[x][y] == board[x-1][y]) { totalPossible += 100; } else if(board[x-1][y] != 0) { totalUnusable += -1; }
-				if(board[x][y] == board[x][y+1]) { totalPossible += 100; } else if(board[x][y+1] != 0) { totalUnusable += -1; }
-			}
-
-			if(x == 0 && y == 3)
-			{
-				
-				if(board[x][y] == board[x+1][y]) { totalPossible += 100; } else if(board[x+1][y] != 0) { totalUnusable += -1; }
-				if(board[x][y] == board[x][y-1]) { totalPossible += 100; } else if(board[x][y-1] != 0) { totalUnusable += -1; }
-			}
-
-			if(x == 3 && y == 3){
-				if(board[x][y] == board[x-1][y]) { totalPossible += 100; } else if(board[x-1][y] != 0) { totalUnusable += -1; }
-				if(board[x][y] == board[x][y-1]) { totalPossible += 100; } else if(board[x][y-1] != 0) { totalUnusable += -1; }
-
-			}
-
-			if(board[x][y] == 0) 
-			{	
-				max += (10000);
-				anyEmpty = true;
-			}
-			if(board[x][y] == 2048)
-			{
-				found2048 = true;
-			}
-		}	
-	}
-
-	if(found2048){
-		return MAX_BOARD_SCORE;
-	}
-
-	if(!anyEmpty){
-		return MIN_BOARD_SCORE;
-	}
-	
-
-	return  max + totalPossible - totalUnusable;
+//takes two cell values
+function IsPossibleMerge(a, b){
+	return a == b && a != 0;
 }
+
+function IsEmpty(a){
+	return a == 0;
+}
+
+
 
 
 function ExtractBoard(){
@@ -328,6 +281,80 @@ function ExtractBoard(){
 	}
 	return board;
 }
+ 
+
+
+function FindMaxValue(board){
+	var max = 0;
+	var occurences = 0;
+	var totalPossible = 0;
+	var totalUnusable = 0;
+	var anyEmpty = false;
+
+	var cellValue = -1;
+	var possMergeValue = 10;
+	var unusableValue = 2;
+	var emptyCellValue = 100;
+
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(board[x][y] != 0){
+				max += (board[x][y]) * cellValue;
+
+				if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0)
+				{
+					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
+					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
+					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
+					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
+				}
+
+				if(x == 0 && y == 0)
+				{
+					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
+					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
+				}
+
+				if(x == 3 && y == 0){			
+					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
+					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
+				}
+
+				if(x == 0 && y == 3)
+				{
+					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
+					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
+				}
+	
+				if(x == 3 && y == 3){
+					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
+					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
+				}
+			}
+			else 
+			{	
+				max += (emptyCellValue);
+				anyEmpty = true;
+			}
+			if(board[x][y] == 2048)
+			{
+				return MAX_BOARD_SCORE;
+			}
+		}	
+	}
+
+
+	if(!anyEmpty){
+		console.log("Scoring found board full up.");
+		return MIN_BOARD_SCORE;
+	}
+	
+
+	return  max + totalPossible - totalUnusable;
+}
+
+
+
 
 function DumpBoard(board){
 
@@ -338,8 +365,6 @@ function DumpBoard(board){
 		}
 		console.log(line);
 	}
-
-
 }
 
 function GetTileAt(x,y){
