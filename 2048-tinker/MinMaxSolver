@@ -1,9 +1,12 @@
 var gm = new GameManager(4, KeyboardInputManager, HTMLActuator, LocalStorageManager);
 
-var PUMPTIME = 3000;
+var PUMPTIME = 150;
 var MAX_BOARD_SCORE = Number.MaxValue;
 var MIN_BOARD_SCORE = -Number.MaxValue;
 var totalMoves = 0;
+
+var SIM_RUNNING = true;
+
 // 0: up
 // 1: right
 // 2: down
@@ -12,19 +15,27 @@ function sim()
 {
 	if(!gm.over)
 	{
-		var move = GetMove(6);
+		var move = GetMove(7);
 
 		gm.move(move);
 		console.log("Move: " + move);
 
 		totalMoves++;
-		setTimeout(sim, PUMPTIME)
+		if(SIM_RUNNING){
+			setTimeout(sim, PUMPTIME);
+		}else{
+			console.log("Sim Stopped");
+		}
 	}
 	else
 	{
 		console.log('Game Over: ' + gm.score);
 		console.log("Total moves: " + totalMoves);
 	}
+}
+
+function stop(){
+	SIM_RUNNING = false;
 }
 
 
@@ -291,15 +302,15 @@ function FindMaxValue(board){
 	var totalUnusable = 0;
 	var anyEmpty = false;
 
-	var cellValue = -1;
-	var possMergeValue = 10;
+	var usedCellValue = -10;
+	var possMergeValue = 100;
 	var unusableValue = 2;
-	var emptyCellValue = 100;
+	var emptyCellValue = 1000;
 
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			if(board[x][y] != 0){
-				max += (board[x][y]) * cellValue;
+				max += usedCellValue;
 
 				if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0)
 				{
