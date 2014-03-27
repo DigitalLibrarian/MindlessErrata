@@ -378,25 +378,127 @@ function ExtractBoard(){
 	}
 	return board;
 }
+
+
+function VisitNeighbors(board, x, y, callback){
+	if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0){
+		callback(board[x-1][y]);
+		callback(board[x+1][y]);
+		callback(board[x][y-1]);
+		callback(board[x][y+1]);
+
+	}
+
+	if(x == 0 && y == 0)
+	{
+		callback(board[x+1][y]);
+		callback(board[x][y+1]);
+	}
+
+	if(x == 3 && y == 0)
+	{
+		callback(board[x-1][y]);
+		callback(board[x][y+1]);
+	}
+	
+	if(x == 0 && y == 3)
+	{
+		callback(board[x+1][y]);
+		callback(board[x][y-1]);
+	}
+
+	if(x == 3 && y == 3)
+	{
+		callback(board[x-1][y]);
+		callback(board[x][y-1]);
+	}
+
+}
  
-
-
 function FindMaxValue(board){
+	var max = 0;
+	var occurences = 0;
+	var anyEmpty = false;
+
+	var usedCellValue = -.1;
+	var possMergeValue = .5;
+	var unusableValue = -.01;
+	var emptyCellValue = 1000;
+	var bigNumOccurFee = -10;
+	var adjacentPairDistFee = -0.1;
+
+	var bigNum = 2;
+	var bigNumOccur = 0;
+
+
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			var me = board[x][y];
+			if(me != 0){
+				max += usedCellValue;
+
+				VisitNeighbors(board, x, y, function(v) {
+					if(me == v)
+					{ 
+						me += v * possMergeValue; 
+					} else if(v != 0) { 
+						me +=  v * unusableValue; 
+						max += adjacentPairDistFee * Math.abs(me - v);
+					}
+				});
+
+
+				if(bigNum < me){
+					bigNum = me;
+					bigNumOccur = 1;
+				}else if(bigNum == me){
+					bigNumOccur++;
+				}
+			}
+			else 
+			{	
+				max += (emptyCellValue);
+				anyEmpty = true;
+			}
+			if(board[x][y] == 2048)
+			{
+				return MAX_BOARD_SCORE;
+			}
+		}	
+	}
+
+
+	if(!anyEmpty){
+		console.log("Scoring found board full up.");
+		return MIN_BOARD_SCORE;
+	}
+	
+
+	if(bigNumOccur > 1){
+		max += (bigNumOccur * bigNumOccurFee * bigNum);
+	}
+	return  max;
+}
+
+
+function OLDOLDFindMaxValue(board){
 	var max = 0;
 	var occurences = 0;
 	var totalPossible = 0;
 	var totalUnusable = 0;
 	var anyEmpty = false;
 
-	var usedCellValue = -10;
-	var possMergeValue = 1000;
-	var unusableValue = 2;
-	var emptyCellValue = 100;
+	var usedCellValue = -1;
+	var possMergeValue = 1;
+	var unusableValue = 0.0;
+	var emptyCellValue = 16;
+	var cellNumberModifier = 0.1;
 
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			if(board[x][y] != 0){
 				max += usedCellValue;
+				max += Math.pow(board[x][y], 2) * cellNumberModifier;
 
 				if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0)
 				{
