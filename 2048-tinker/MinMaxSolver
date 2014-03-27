@@ -13,9 +13,10 @@ var SIM_RUNNING = true;
 // 3: left
 function sim()
 {
+
 	if(!gm.over)
 	{
-		var move = GetMove(7);
+		var move = GetMove(6);
 
 		gm.move(move);
 		console.log("Move: " + move);
@@ -161,14 +162,18 @@ function IsSameBoard(a, b){
 }
 
 
-function CopyBoard(sourceBoard)
-{
-	var board = [
+function CreateNewBoard(){
+	return [
 			[0,0,0,0],
 			[0,0,0,0],
 			[0,0,0,0],
 			[0,0,0,0]
 		    ];
+}
+
+function CopyBoard(sourceBoard)
+{
+	var board = CreateNewBoard();
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			board[x][y] = sourceBoard[x][y];
@@ -190,10 +195,29 @@ function GetPossibleHumanMoves(sourceBoard){
 	return moves;
 }
 
+function NextNonZeroOnY(board, x, startY, endY, yD){
+
+	for(var y = startY; y != endY; y += yD){
+		if(board[x][y] != 0){
+			return { number: board[x][y], index: y, found: true };
+		}			
+	}
+	return { number: 0, index: y, found: false };
+}
+
+function NextNonZeroOnX(board, y, startX, endX, xD){
+
+	for(var x = startX; x != endX; x += xD){
+		if(board[x][y] != 0){
+			return { number: board[x][y], index: x, found: true };
+		}			
+	}
+	return { number: 0, index: x, found: false };
+}
 function HumanMove(sourceBoard, move)
 {
-
-	var board = CopyBoard(sourceBoard);
+	sourceBoard = CopyBoard(sourceBoard);
+	var board = CreateNewBoard();
 // 0: up
 // 1: right
 // 2: down
@@ -202,28 +226,60 @@ function HumanMove(sourceBoard, move)
 	{
 		// merge upwards
 		for(var x = 0; x < 4; x++){
-			for(var y = 0; y < 3; y++){
-				if(board[x][y] == board[x][y+1]){
-					board[x][y] = board[x][y] * 2;
-					board[x][y+1] = 0;
-				}else if(board[x][y] == 0 ){
-					board[x][y] = board[x][y+1];
-					board[x][y+1] = 0;
-				}
+			var out = 0;
+			var dir = 1;
+			for(var y = 0; y < 4;y+=0){
+				var newNumber = 0;
+				var next = NextNonZeroOnY(sourceBoard, x, y,  4, dir);
+				
+				if(next.found){
+					var after = NextNonZeroOnY(sourceBoard, x, next.index+dir, 4, dir);
+					if(after.found && after.number == next.number){
+						newNumber = next.number  * 2;
+						//can't merge this again this turn
+						sourceBoard[x][next.index]  = 0;
+						sourceBoard[x][after.index]  = 0;
+						y = after.index+dir; //pick up after
+					}else{
+						newNumber = next.number;
+						y = next.index+dir;
+					}
+
+				}else{
+					y += dir;
+				}		
+
+				board[x][out]  = newNumber;			
+				out++;
 			}
 		}
-	}else if(move == 1){
 
+	}else if(move == 1){
 		// merge right
-		for(var x = 3; x > 0; x--){
-			for(var y = 0; y < 4; y++){
-				if(board[x][y] == board[x-1][y]){
-					board[x][y] = board[x][y] * 2;
-					board[x-1][y] = 0;
-				}else if(board[x][y] == 0 ){
-					board[x][y] = board[x-1][y];
-					board[x-1][y] = 0;
+		for(var y = 0; y < 4; y++){
+			var out = 3;
+			var dir = -1;
+			for(var x = 3; x >= 0;x+=0){
+				var newNumber = 0;
+				var next = NextNonZeroOnX(sourceBoard, y, x, -1, dir);
+				if(next.found){
+					var after = NextNonZeroOnX(sourceBoard, y, next.index+dir, -1, dir);
+					if(after.found && after.number == next.number){
+						newNumber = next.number * 2;
+						//can't merge this again this turn
+						sourceBoard[next.index][y] =  0;
+						sourceBoard[after.index][y] =  0;
+						x = after.index+dir;
+					}else{
+						newNumber = next.number;
+						x = next.index+dir;
+					}
+
+				}else{
+					x += dir;
 				}
+				board[out][y] = newNumber;
+				out--;
 			}
 		}
 
@@ -231,30 +287,65 @@ function HumanMove(sourceBoard, move)
 	{
 		// merge downwards
 		for(var x = 0; x < 4; x++){
-			for(var y = 3; y > 0; y--){
-				if(board[x][y] == board[x][y-1]){
-					board[x][y] = board[x][y] * 2;
-					board[x][y-1] = 0;
-				}else if(board[x][y] == 0 ){
-					board[x][y] = board[x][y-1];
-					board[x][y-1] = 0;
-				}
+			var out = 3;
+			var dir = -1;
+			for(var y = 3; y >= 0;y+=0){
+				var newNumber = 0;
+				var next = NextNonZeroOnY(sourceBoard, x, y, -1, dir);
+				
+				if(next.found){
+					var after = NextNonZeroOnY(sourceBoard, x, next.index+dir, -1, dir);
+					if(after.found && after.number == next.number){
+						newNumber = next.number  * 2;
+						//can't merge this again this turn
+						sourceBoard[x][next.index]  =  0;
+						sourceBoard[x][after.index]  =  0;
+						y = after.index+dir; //pick up after
+					}else{
+						newNumber = next.number;
+						y = next.index+dir;
+					}
+
+				}else{
+					y += dir;
+				}		
+
+				board[x][out]  = newNumber;			
+				out--;
 			}
 		}
+
+	
 	}else if(move == 3){
 
 		// merge left
-		for(var x = 0; x < 3 ; x++){
-			for(var y = 0; y < 4; y++){
-				if(board[x][y] == board[x+1][y]){
-					board[x][y] = board[x][y] * 2;
-					board[x+1][y] = 0;
-				}else if(board[x][y] == 00){
-					board[x][y] = board[x+1][y];
-					board[x+1][y] = 0;
+		for(var y = 0; y < 4; y++){
+			var out = 0;
+			var dir = 1;
+			for(var x =0; x < 4;x+=0){
+				var newNumber = 0;
+				var next = NextNonZeroOnX(sourceBoard, y, x, 4, dir);
+				if(next.found){
+					var after = NextNonZeroOnX(sourceBoard, y, next.index+dir, 4, dir);
+					if(after.found && after.number == next.number){
+						newNumber = next.number * 2;
+						//can't merge this again this turn
+						sourceBoard[next.index][y] =  0;
+						sourceBoard[after.index][y] =  0;
+						x = after.index+dir;
+					}else{
+						newNumber = next.number;
+						x = next.index+dir;
+					}
+
+				}else{
+					x += dir;
 				}
+				board[out][y] = newNumber;
+				out++;
 			}
 		}
+	
 
 	}
 
@@ -274,12 +365,7 @@ function IsEmpty(a){
 
 
 function ExtractBoard(){
-	var board = [
-			[0,0,0,0],
-			[0,0,0,0],
-			[0,0,0,0],
-			[0,0,0,0],
-		    ];
+	var board = CreateNewBoard();
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			var tile = GetTileAt(x,y);
@@ -303,9 +389,9 @@ function FindMaxValue(board){
 	var anyEmpty = false;
 
 	var usedCellValue = -10;
-	var possMergeValue = 100;
+	var possMergeValue = 1000;
 	var unusableValue = 2;
-	var emptyCellValue = 1000;
+	var emptyCellValue = 100;
 
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
@@ -372,9 +458,27 @@ function DumpBoard(board){
 	for(var y = 0; y < 4; y++){
 		var line = "| ";
 		for(var x = 0; x < 4; x++){
-			line =  line + board[x][y] + " | ";
+			line =  line + "" + board[x][y] + " | ";
 		}
 		console.log(line);
+	}
+}
+
+function DumpTestMoves(){
+
+	for(var testMove = 0; testMove < 4; testMove++){
+
+		var sourceBoard = [
+			[2,2,2,0],
+			[0,0,2,0],
+			[0,2,4,4],
+			[2,2,8,0],
+		    ];
+		console.log("Performing move " + testMove + " on : ");
+		DumpBoard(sourceBoard);
+		var board = HumanMove(sourceBoard, testMove);
+		console.log("After move " + testMove);
+		DumpBoard(board);
 	}
 }
 
