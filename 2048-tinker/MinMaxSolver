@@ -420,39 +420,47 @@ function FindMaxValue(board){
 	var occurences = 0;
 	var anyEmpty = false;
 
-	var usedCellValue = -.1;
-	var possMergeValue = .5;
-	var unusableValue = -.01;
-	var emptyCellValue = 1000;
-	var bigNumOccurFee = -10;
-	var adjacentPairDistFee = -0.1;
+	var possMergeValue = 0.;
+	var unusableValue = 0;
+	var emptyCellValue = 20;
+	var secBigNumOccurFee = -0.0000000;
+	var adjacentPairDistFee = -0.01;
+	var numberValue = 0.00;
+	var bigNumPowFee = 0.0;	
 
-	var bigNum = 2;
-	var bigNumOccur = 0;
+	var bigNum = 0;
+	var secBigNum = 0;
+	var secBigNumOccur = 0;
 
 
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			var me = board[x][y];
 			if(me != 0){
-				max += usedCellValue;
-
+				max += Math.pow(me, 2) * numberValue;
 				VisitNeighbors(board, x, y, function(v) {
 					if(me == v)
 					{ 
-						me += v * possMergeValue; 
+						max += v * possMergeValue; 
 					} else if(v != 0) { 
-						me +=  v * unusableValue; 
-						max += adjacentPairDistFee * Math.abs(me - v);
+						max +=  v * unusableValue; 
+						max += adjacentPairDistFee * Math.pow(Math.abs(me - v), 2);
 					}
 				});
 
 
-				if(bigNum < me){
-					bigNum = me;
-					bigNumOccur = 1;
-				}else if(bigNum == me){
-					bigNumOccur++;
+				if(me >= secBigNum){
+					if(me > bigNum){
+						bigNum = me;
+					}else if(me < bigNum){
+						if(me > secBigNum){
+							secBigNum = me;
+							secBigOccur = 1;
+						}else if(secBigNum == me){
+							secBigNumOccur++;
+						}
+					}
+
 				}
 			}
 			else 
@@ -469,88 +477,15 @@ function FindMaxValue(board){
 
 
 	if(!anyEmpty){
-		console.log("Scoring found board full up.");
 		return MIN_BOARD_SCORE;
 	}
 	
 
-	if(bigNumOccur > 1){
-		max += (bigNumOccur * bigNumOccurFee * bigNum);
-	}
+	max += Math.pow(bigNum, 2) * bigNumPowFee;
+	max += (secBigNumOccur * secBigNumOccurFee * secBigNum);
 	return  max;
 }
 
-
-function OLDOLDFindMaxValue(board){
-	var max = 0;
-	var occurences = 0;
-	var totalPossible = 0;
-	var totalUnusable = 0;
-	var anyEmpty = false;
-
-	var usedCellValue = -1;
-	var possMergeValue = 1;
-	var unusableValue = 0.0;
-	var emptyCellValue = 16;
-	var cellNumberModifier = 0.1;
-
-	for(var x = 0; x < 4; x++){
-		for(var y = 0; y < 4; y++){
-			if(board[x][y] != 0){
-				max += usedCellValue;
-				max += Math.pow(board[x][y], 2) * cellNumberModifier;
-
-				if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0)
-				{
-					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
-
-				if(x == 0 && y == 0)
-				{
-					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
-
-				if(x == 3 && y == 0){			
-					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y+1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y+1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
-
-				if(x == 0 && y == 3)
-				{
-					if(board[x][y] == board[x+1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x+1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
-	
-				if(x == 3 && y == 3){
-					if(board[x][y] == board[x-1][y]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x-1][y] != 0) { totalUnusable += board[x][y] * unusableValue; }
-					if(board[x][y] == board[x][y-1]) { totalPossible += board[x][y] * possMergeValue; } else if(board[x][y-1] != 0) { totalUnusable += board[x][y] * unusableValue; }
-				}
-			}
-			else 
-			{	
-				max += (emptyCellValue);
-				anyEmpty = true;
-			}
-			if(board[x][y] == 2048)
-			{
-				return MAX_BOARD_SCORE;
-			}
-		}	
-	}
-
-
-	if(!anyEmpty){
-		console.log("Scoring found board full up.");
-		return MIN_BOARD_SCORE;
-	}
-	
-
-	return  max + totalPossible - totalUnusable;
-}
 
 
 
