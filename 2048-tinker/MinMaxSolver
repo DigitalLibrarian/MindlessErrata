@@ -53,13 +53,17 @@ function GetMove()
 
 	var levelsDeep = 3;
 	var emptyCellCount = GetEmptyCellCount(board);
+
 	if(GetBiggestValue(board) >= 1024){
-		if(emptyCellCount < 6){
-			levelsDeep = 7;
-		}else if(emptyCellCount < 5){
+		levelsDeep = 6;
+		if(emptyCellCount < 8){
 			levelsDeep = 9;
-		}else if(emptyCellCount < 3){
-			levelsDeep = 11;
+		}else if(emptyCellCount < 5){
+			levelsDeep = 12;
+		}
+	}else{
+		if(emptyCellCount < 5){
+			levelsDeep = 6;
 		}
 	}
 
@@ -425,6 +429,20 @@ function GetBiggestValue(board){
 }
 
 
+function GetNumOccur(board, value){
+	var numOccur = 0;
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(board[x][y] == value) {
+				numOccur++;
+			}
+		}	
+	}
+	return numOccur;
+}
+
+
+
 function GetEmptyCellCount(board){
 	var count = 0;
 	for(var x = 0; x < 4; x++){
@@ -442,13 +460,15 @@ function GetEmptyCellCount(board){
 function ComputeBoardScore(board){
 	var max = 0;
 
-	var possMergeValue = 0.000000;
+	var possMergeValue = 0.1;
 	var unusableValue = -0.01;
 	var secBigNumOccurFee = -0.0;
-	var adjacentPairDistFee = -0.001;
+	var adjacentPairDistFee = -0;
+	var biggerNeighCost = -0.001;
 	var numberValue = 0.0;
 	var bigNumPowFee = 0;
-	var emptyFee = 1000000;
+	var emptyFee = 100000;
+
 
 	var bigNum = 0;
 	var secBigNum = 0;
@@ -467,9 +487,11 @@ function ComputeBoardScore(board){
 					} else { 
 						max +=  v * unusableValue; 
 						if(v == 0){
-							max -= adjacentPairDistFee * me;
+							max += adjacentPairDistFee * me * me;
 						}else{
-							max += adjacentPairDistFee * Math.abs(me - v);
+							max += adjacentPairDistFee * (Math.abs(me - v) * v);
+							var bigger = Math.max(me, v);
+							max += biggerNeighCost *  bigger;
 						}
 					}
 				});
