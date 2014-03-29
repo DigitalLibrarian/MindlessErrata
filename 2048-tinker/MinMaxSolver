@@ -14,12 +14,10 @@ var SIM_RUNNING = true;
 function sim()
 {
 
-//	DumpTestMoves();
-//	return;
-
 	if(!gm.over)
 	{
-		var move = GetMove(6);
+
+		var move = GetMove();
 
 		gm.move(move);
 		console.log("Move: " + move);
@@ -43,14 +41,28 @@ function stop(){
 }
 
 
-function GetMove(levelsDeep)
+function GetMove()
 {
 	var board = ExtractBoard();
-	var score =  FindMaxValue(board);
+	var score =  ComputeBoardScore(board);
 
 	console.log("Generating move.  current board score = " + score);
 	var originalBoard = CopyBoard(board);
 	var playerMove = {move: 0};
+
+
+	var levelsDeep = 3;
+	var emptyCellCount = GetEmptyCellCount(board);
+	if(GetBiggestValue(board) >= 1024){
+		if(emptyCellCount < 6){
+			levelsDeep = 7;
+		}else if(emptyCellCount < 5){
+			levelsDeep = 9;
+		}else if(emptyCellCount < 3){
+			levelsDeep = 11;
+		}
+	}
+
 
 	var bestHigh = MinMaxMove(true, levelsDeep, board, playerMove);
 
@@ -73,7 +85,7 @@ function GetMove(levelsDeep)
 function MinMaxMove(isMyTurn, levelsLeft, board, playerMove)
 {
 	if(levelsLeft == 0) {
-		return FindMaxValue(board);
+		return ComputeBoardScore(board);
 	}
 	
 
@@ -82,12 +94,12 @@ function MinMaxMove(isMyTurn, levelsLeft, board, playerMove)
 }
 
 function AiTurn(levelsLeft, board){
-	var choices = [2, 4];
+	var choices = [2/*, 4*/];
 	var possibleCells = ComputePossibleCells(board);
 
 	if(possibleCells.length == 0)
 	{
-		return FindMaxValue(board);
+		return ComputeBoardScore(board);
 	}
 
 	var bestHigh = MAX_BOARD_SCORE;
@@ -139,7 +151,7 @@ function HumanTurn(levelsLeft, board, playerMove)
 
 	if(moves.length == 0)
 	{
-		return FindMaxValue(board);
+		return ComputeBoardScore(board);
 	}
 
 	for(var i = 0; i < 4; i++){
@@ -399,17 +411,44 @@ function VisitNeighbors(board, x, y, callback){
 		callback(board[x][y+1]);
 	}
 }
+
+function GetBiggestValue(board){
+	var bigNum = 0;
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(board[x][y] > bigNum) {
+				bigNum = board[x][y];
+			}
+		}	
+	}
+	return bigNum;
+}
+
+
+function GetEmptyCellCount(board){
+	var count = 0;
+	for(var x = 0; x < 4; x++){
+		for(var y = 0; y < 4; y++){
+			if(board[x][y] == 0) {
+				count++;
+			}
+		}	
+	}
+	return count;
+}
+
+
  
-function FindMaxValue(board){
+function ComputeBoardScore(board){
 	var max = 0;
 
-	var possMergeValue = 0.0;
-	var unusableValue = 0;
+	var possMergeValue = 0.000000;
+	var unusableValue = -0.01;
 	var secBigNumOccurFee = -0.0;
-	var adjacentPairDistFee = -0.0001;
+	var adjacentPairDistFee = -0.001;
 	var numberValue = 0.0;
-	var bigNumPowFee = 0.0;
-	var emptyFee = 100;	
+	var bigNumPowFee = 0;
+	var emptyFee = 1000000;
 
 	var bigNum = 0;
 	var secBigNum = 0;
@@ -420,15 +459,18 @@ function FindMaxValue(board){
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			var me = board[x][y];
-			if(me != 0){
-				max += Math.pow(me, 1.1) * numberValue;
+				max += Math.pow(me, 2) * numberValue;
 				VisitNeighbors(board, x, y, function(v) {
 					if(me == v)
 					{ 
 						max += v * possMergeValue; 
-					} else if(v != 0) { 
+					} else { 
 						max +=  v * unusableValue; 
-						max += adjacentPairDistFee * Math.abs(me - v);
+						if(v == 0){
+							max -= adjacentPairDistFee * me;
+						}else{
+							max += adjacentPairDistFee * Math.abs(me - v);
+						}
 					}
 				});
 
@@ -446,9 +488,7 @@ function FindMaxValue(board){
 					}
 
 				}
-			}
-			else 
-			{	
+			if(me == 0){	
 				emptyCount++;
 			}
 			if(board[x][y] == 2048)
@@ -460,13 +500,13 @@ function FindMaxValue(board){
 	}
 
 
-	if(emptyCount == 2){
+	if(emptyCount < 1){
 		console.log("Out of empties");
 		return MIN_BOARD_SCORE;
 	}
-	
-	max += emptyCount *  bigNum * emptyFee;
-	max += Math.pow(bigNum, 1.1) * bigNumPowFee;
+
+	max += emptyCount * emptyFee;
+	max += bigNum * bigNumPowFee;
 	max += (secBigNumOccur * secBigNumOccurFee * secBigNum);
 	if(isNaN(max)){
 		console.log("Board scored NaN! Shutting down.");
@@ -515,10 +555,10 @@ function DumpTestMoves(){
 		var sourceBoard = boards[i];
 		for(var testMove = 0; testMove < 4; testMove++){
 
-			console.log("Performing move " + testMove + " score before : " + FindMaxValue(sourceBoard));
+			console.log("Performing move " + testMove + " score before : " + ComputeBoardScore(sourceBoard));
 			DumpBoard(sourceBoard);
 			var board = HumanMove(sourceBoard, testMove);
-			console.log("After move " + testMove + " score after : " + FindMaxValue(board));
+			console.log("After move " + testMove + " score after : " + ComputeBoardScore(board));
 			DumpBoard(board);
 		}
 	}
