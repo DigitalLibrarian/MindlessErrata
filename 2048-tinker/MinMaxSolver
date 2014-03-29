@@ -1,8 +1,8 @@
 var gm = new GameManager(4, KeyboardInputManager, HTMLActuator, LocalStorageManager);
 
 var PUMPTIME = 150;
-var MAX_BOARD_SCORE = Number.MaxValue;
-var MIN_BOARD_SCORE = -Number.MaxValue;
+var MAX_BOARD_SCORE = 10000000000;
+var MIN_BOARD_SCORE = -10000000000;
 var totalMoves = 0;
 
 var SIM_RUNNING = true;
@@ -13,6 +13,9 @@ var SIM_RUNNING = true;
 // 3: left
 function sim()
 {
+
+//	DumpTestMoves();
+//	return;
 
 	if(!gm.over)
 	{
@@ -43,7 +46,9 @@ function stop(){
 function GetMove(levelsDeep)
 {
 	var board = ExtractBoard();
-	console.log("Generating move.  current board score = " + FindMaxValue(board));
+	var score =  FindMaxValue(board);
+
+	console.log("Generating move.  current board score = " + score);
 	var originalBoard = CopyBoard(board);
 	var playerMove = {move: 0};
 
@@ -53,8 +58,9 @@ function GetMove(levelsDeep)
 	// if our ai didn't turn up anything useful, let's fall back on the first direction that yields *something* different
 	if(IsSameBoard(newBoard, originalBoard)){
 		for(var retry = 0; retry < 4; retry++){	
-			newBoard = HumanMove(board, retry);
+			newBoard = HumanMove(originalBoard, retry);
 			if(!IsSameBoard(newBoard, originalBoard)){
+				console.log("Ai turned up nothing, going with first different");
 				return retry;
 			}
 		}
@@ -78,7 +84,6 @@ function MinMaxMove(isMyTurn, levelsLeft, board, playerMove)
 function AiTurn(levelsLeft, board){
 	var choices = [2, 4];
 	var possibleCells = ComputePossibleCells(board);
-
 
 	if(possibleCells.length == 0)
 	{
@@ -128,7 +133,6 @@ function ComputePossibleCells(board){
 
 function HumanTurn(levelsLeft, board, playerMove)
 {
-
 	var bestMove = 0;
 	var bestHigh = MIN_BOARD_SCORE;
 	var moves = GetPossibleHumanMoves(board);
@@ -214,9 +218,9 @@ function NextNonZeroOnX(board, y, startX, endX, xD){
 	}
 	return { number: 0, index: x, found: false };
 }
-function HumanMove(sourceBoard, move)
+function HumanMove(originalBoard, move)
 {
-	sourceBoard = CopyBoard(sourceBoard);
+	sourceBoard = CopyBoard(originalBoard);
 	var board = CreateNewBoard();
 // 0: up
 // 1: right
@@ -381,70 +385,50 @@ function ExtractBoard(){
 
 
 function VisitNeighbors(board, x, y, callback){
-	if((x > 0 && x < 3 && y > 0 && y < 3) && board[x][y] != 0){
+
+	if(x > 0){
 		callback(board[x-1][y]);
-		callback(board[x+1][y]);
-		callback(board[x][y-1]);
-		callback(board[x][y+1]);
-
 	}
-
-	if(x == 0 && y == 0)
-	{
+	if(x < 3){
 		callback(board[x+1][y]);
-		callback(board[x][y+1]);
 	}
-
-	if(x == 3 && y == 0)
-	{
-		callback(board[x-1][y]);
-		callback(board[x][y+1]);
-	}
-	
-	if(x == 0 && y == 3)
-	{
-		callback(board[x+1][y]);
+	if(y > 0){
 		callback(board[x][y-1]);
 	}
-
-	if(x == 3 && y == 3)
-	{
-		callback(board[x-1][y]);
-		callback(board[x][y-1]);
+	if(y < 3){
+		callback(board[x][y+1]);
 	}
-
 }
  
 function FindMaxValue(board){
 	var max = 0;
-	var occurences = 0;
-	var anyEmpty = false;
 
-	var possMergeValue = 0.;
+	var possMergeValue = 0.0;
 	var unusableValue = 0;
-	var emptyCellValue = 20;
-	var secBigNumOccurFee = -0.0000000;
-	var adjacentPairDistFee = -0.01;
-	var numberValue = 0.00;
-	var bigNumPowFee = 0.0;	
+	var secBigNumOccurFee = -0.0;
+	var adjacentPairDistFee = -0.0001;
+	var numberValue = 0.0;
+	var bigNumPowFee = 0.0;
+	var emptyFee = 100;	
 
 	var bigNum = 0;
 	var secBigNum = 0;
 	var secBigNumOccur = 0;
+	var emptyCount = 0;
 
 
 	for(var x = 0; x < 4; x++){
 		for(var y = 0; y < 4; y++){
 			var me = board[x][y];
 			if(me != 0){
-				max += Math.pow(me, 2) * numberValue;
+				max += Math.pow(me, 1.1) * numberValue;
 				VisitNeighbors(board, x, y, function(v) {
 					if(me == v)
 					{ 
 						max += v * possMergeValue; 
 					} else if(v != 0) { 
 						max +=  v * unusableValue; 
-						max += adjacentPairDistFee * Math.pow(Math.abs(me - v), 2);
+						max += adjacentPairDistFee * Math.abs(me - v);
 					}
 				});
 
@@ -465,24 +449,31 @@ function FindMaxValue(board){
 			}
 			else 
 			{	
-				max += (emptyCellValue);
-				anyEmpty = true;
+				emptyCount++;
 			}
 			if(board[x][y] == 2048)
 			{
+				console.log("Scored possible win");
 				return MAX_BOARD_SCORE;
 			}
 		}	
 	}
 
 
-	if(!anyEmpty){
+	if(emptyCount == 2){
+		console.log("Out of empties");
 		return MIN_BOARD_SCORE;
 	}
 	
-
-	max += Math.pow(bigNum, 2) * bigNumPowFee;
+	max += emptyCount *  bigNum * emptyFee;
+	max += Math.pow(bigNum, 1.1) * bigNumPowFee;
 	max += (secBigNumOccur * secBigNumOccurFee * secBigNum);
+	if(isNaN(max)){
+		console.log("Board scored NaN! Shutting down.");
+		DumpBoard(board);
+		SIM_RUNNING = false;
+	}
+
 	return  max;
 }
 
@@ -503,19 +494,33 @@ function DumpBoard(board){
 
 function DumpTestMoves(){
 
-	for(var testMove = 0; testMove < 4; testMove++){
 
-		var sourceBoard = [
+	var boards = [
+			[
 			[2,2,2,0],
 			[0,0,2,0],
 			[0,2,4,4],
 			[2,2,8,0],
-		    ];
-		console.log("Performing move " + testMove + " on : ");
-		DumpBoard(sourceBoard);
-		var board = HumanMove(sourceBoard, testMove);
-		console.log("After move " + testMove);
-		DumpBoard(board);
+			],
+			[
+			[16,4,2,0],
+			[4,32,8,0],
+			[16,8,4,4],
+			[32,16,8,4]
+			]
+	];
+
+
+	for(var i = 0; i < boards.length; i++){
+		var sourceBoard = boards[i];
+		for(var testMove = 0; testMove < 4; testMove++){
+
+			console.log("Performing move " + testMove + " score before : " + FindMaxValue(sourceBoard));
+			DumpBoard(sourceBoard);
+			var board = HumanMove(sourceBoard, testMove);
+			console.log("After move " + testMove + " score after : " + FindMaxValue(board));
+			DumpBoard(board);
+		}
 	}
 }
 
