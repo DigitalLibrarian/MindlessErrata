@@ -59,7 +59,7 @@ function GetMove()
 		if(emptyCellCount < 8){
 			levelsDeep = 9;
 		}else if(emptyCellCount < 5){
-			levelsDeep = 12;
+			levelsDeep = 11;
 		}
 	}else{
 		if(emptyCellCount < 5){
@@ -165,6 +165,10 @@ function HumanTurn(levelsLeft, board, playerMove)
 		if(high >= bestHigh){
 			bestMove = move;
 			bestHigh = high;
+		}
+		if(high >= MAX_BOARD_SCORE){
+			playerMove.move = move;
+			return high;
 		}
 	}
 	playerMove.move = bestMove;
@@ -467,7 +471,7 @@ function ComputeBoardScore(board){
 	var biggerNeighCost = -0.001;
 	var numberValue = 0.0;
 	var bigNumPowFee = 0;
-	var emptyFee = 100000;
+	var emptyFee = 1000000;
 
 
 	var bigNum = 0;
@@ -523,7 +527,6 @@ function ComputeBoardScore(board){
 
 
 	if(emptyCount < 1){
-		console.log("Out of empties");
 		return MIN_BOARD_SCORE;
 	}
 
